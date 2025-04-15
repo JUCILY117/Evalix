@@ -26,7 +26,7 @@ export async function setSessionCookie(idToken: string) {
 }
 
 export async function signUp(params: SignUpParams) {
-  const { uid, name, email } = params;
+  const { uid, name, email, photoURL } = params;
 
   try {
     // check if user exists in db
@@ -41,7 +41,7 @@ export async function signUp(params: SignUpParams) {
     await db.collection("users").doc(uid).set({
       name,
       email,
-      // profileURL,
+      photoURL,
       // resumeURL,
     });
 
@@ -113,8 +113,12 @@ export async function getCurrentUser(): Promise<User | null> {
       .get();
     if (!userRecord.exists) return null;
 
+    const userData = userRecord.data();
+
     return {
-      ...userRecord.data(),
+      name: userData?.name || null,
+      email: userData?.email || null,
+      photoURL: userData?.photoURL || "/default-avatar.png",
       id: userRecord.id,
     } as User;
   } catch (error) {
