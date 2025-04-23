@@ -22,7 +22,6 @@ const AuthForm = ({ type }: { type: FormType }) => {
       const user = result.user;
       const idToken = await user.getIdToken();
 
-      // Always update Firestore with latest Google info
       await setDoc(
         doc(db, "users", user.uid),
         {
