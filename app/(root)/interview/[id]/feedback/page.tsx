@@ -10,6 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 
+// Import your FeedbackActions client component
+import FeedbackActions from "@/components/FeedbackActions";
+
 const Feedback = async ({ params }: RouteParams) => {
   const { id } = await params;
   const user = await getCurrentUser();
@@ -92,6 +95,13 @@ const Feedback = async ({ params }: RouteParams) => {
         </ul>
       </div>
 
+      {/* Your new FeedbackActions component */}
+      <FeedbackActions
+        email={user?.email || ""}
+        interviewRole={interview.role}
+        feedback={feedback}
+      />
+
       <div className="buttons">
         <Button className="btn-secondary flex-1">
           <Link href="/" className="flex w-full justify-center">
@@ -102,10 +112,7 @@ const Feedback = async ({ params }: RouteParams) => {
         </Button>
 
         <Button className="btn-primary flex-1">
-          <Link
-            href={`/interview/${id}`}
-            className="flex w-full justify-center"
-          >
+          <Link href={`/interview/${id}`} className="flex w-full justify-center">
             <p className="text-sm font-semibold text-black text-center">
               Retake Interview
             </p>

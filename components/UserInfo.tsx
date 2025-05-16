@@ -40,6 +40,7 @@ const UserInfo = () => {
         <span className="font-medium text-lg text-gray-900 dark:text-white">
           {user.name}
         </span>
+        {/* <span>{user.email}</span> */}
         <button
           onClick={handleLogout}
           className="text-lg text-red-500 hover:text-red-800 cursor-pointer transition-all"
