@@ -6,7 +6,7 @@ import { generateFeedbackHTML } from "@/lib/utils";
 const FeedbackSchema = z.object({
     email: z.string().email(),
     subject: z.string().optional(),
-    feedback: z.string().min(10), // this is a JSON string
+    feedback: z.string().min(10),
 });
 
 export async function POST(req: Request) {
@@ -23,7 +23,6 @@ export async function POST(req: Request) {
 
         const { email, subject, feedback } = parsed.data;
 
-        // Safely parse feedback string into an object
         let feedbackObj: Record<string, any>;
         try {
             feedbackObj = JSON.parse(feedback);

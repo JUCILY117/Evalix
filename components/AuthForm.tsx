@@ -4,16 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { auth } from "@/firebase/client";
+import { auth, db } from "@/firebase/client";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { Button } from "@/components/ui/button";
 import { signIn, signUp } from "@/lib/actions/auth.action";
-import { setDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/firebase/client";
+import { setDoc, doc, getDoc, serverTimestamp } from "firebase/firestore";
+import { generateTotpSecret, getTotpQrCodeDataURL } from "@/lib/totp";
 
 const AuthForm = ({ type }: { type: FormType }) => {
   const router = useRouter();
+  const isSignIn = type === "sign-in";
 
   const handleGoogleSignIn = async () => {
     try {
@@ -22,17 +23,17 @@ const AuthForm = ({ type }: { type: FormType }) => {
       const user = result.user;
       const idToken = await user.getIdToken();
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          lastLogin: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.exists() ? userSnap.data() : null;
+
+      await setDoc(userRef, {
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        lastLogin: serverTimestamp(),
+      }, { merge: true });
 
       if (type === "sign-up") {
         const response = await signUp({
@@ -50,22 +51,34 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         toast.success("Account created successfully. Please sign in.");
         router.push("/sign-in");
-      } else {
-        await signIn({
-          email: user.email!,
-          idToken,
-        });
-
-        toast.success("Signed in successfully.");
-        router.push("/");
+        return;
       }
+
+      if (!userData?.totpSecret) {
+        const { base32, otpauth_url } = generateTotpSecret(user.email || "");
+        const qrCode = await getTotpQrCodeDataURL(otpauth_url);
+
+        await setDoc(userRef, { totpSecret: base32 }, { merge: true });
+
+        sessionStorage.setItem("totpQr", qrCode);
+        sessionStorage.setItem("uid", user.uid);
+
+        router.push("/2fa");
+        return;
+      }
+
+      await signIn({
+        email: user.email!,
+        idToken,
+      });
+
+      toast.success("Signed in successfully.");
+      router.push("/");
     } catch (error) {
       console.error(error);
       toast.error("Google sign-in failed. Try again.");
     }
   };
-
-  const isSignIn = type === "sign-in";
 
   return (
     <div className="card-border lg:min-w-[566px]">
@@ -78,8 +91,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         <h3>Practice job interviews with AI</h3>
 
         <Button className="btn mt-4 cursor-pointer" onClick={handleGoogleSignIn}>
-          {isSignIn ? "Sign In with" : "Sign Up with"}
-        <FcGoogle />
+          {isSignIn ? "Sign In with" : "Sign Up with"} <FcGoogle />
         </Button>
 
         <p className="text-center">
